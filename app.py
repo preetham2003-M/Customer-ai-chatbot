@@ -42,3 +42,29 @@ if query:
 
     st.write("Relevant data:")
     st.write(results)
+    query = st.text_input("Ask anything about customer cases")
+
+if query:
+
+    query_embedding = model.encode([query])
+    D, I = index.search(np.array(query_embedding), k=5)
+
+    results = data.iloc[I[0]]
+
+    st.subheader("AI Explanation")
+
+    explanation = f"""
+Based on the dataset, the chatbot searched for records related to your question: **{query}**.
+
+The table below shows the most relevant customer cases. 
+You can observe the channel, category, status, and type of customer requests from these results.
+
+These records help understand patterns in customer experience issues.
+"""
+
+    st.write(explanation)
+
+    st.subheader("Relevant Data")
+
+    st.dataframe(results)
+
