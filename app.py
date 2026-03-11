@@ -7,50 +7,43 @@ from transformers import pipeline
 
 st.title("Customer Experience AI Chatbot")
 
-# Load dataset
-data = pd.read_excel("Customer Experience.xlsx")
+@st.cache_resource
+def load_models():
+    embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+    generator = pipeline("text-generation", model="distilgpt2")
+    return embed_model, generator
 
-# Reduce dataset for cloud performance
-data = data.head(2000)
+@st.cache_data
+def load_data():
+    data = pd.read_excel("Customer Experience.xlsx")
+    data = data.head(2000)
+    data["text"] = data.astype(str).agg(" ".join, axis=1)
+    return data
 
-# Convert rows to text
-data["text"] = data.astype(str).agg(" ".join, axis=1)
+embed_model, generator = load_models()
+data = load_data()
 
 texts = data["text"].tolist()
 
-# Load embedding model
-embed_model = SentenceTransformer("all-MiniLM-L6-v2")
-
-# Create embeddings
 embeddings = embed_model.encode(texts)
 
-# Create FAISS index
 dimension = embeddings.shape[1]
 index = faiss.IndexFlatL2(dimension)
 index.add(np.array(embeddings))
 
-# Load HuggingFace LLM
-generator = pipeline("text-generation", model="distilgpt2")
-
 query = st.text_input("Ask anything about customer cases")
 
 if query:
-
-    # Convert question to embedding
     query_embedding = embed_model.encode([query])
-
-    # Search similar records
     D, I = index.search(np.array(query_embedding), k=5)
-
     context = " ".join([texts[i] for i in I[0]])
 
     prompt = f"""
-    Based on the following customer experience data:
+    Based on the following customer data:
     {context}
 
     Answer the question: {query}
     """
 
-    result = generator(prompt, max_length=150, num_return_sequences=1)
-
+    result = generator(prompt, max_length=150)
     st.write(result[0]["generated_text"])
