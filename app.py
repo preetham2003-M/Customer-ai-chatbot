@@ -6,23 +6,27 @@ import numpy as np
 
 st.title("Customer Experience AI Chatbot")
 
+# Load dataset
+@st.cache_data
+def load_data():
+    data = pd.read_excel("Customer Experience.xlsx")
+    data = data.head(2000)   # limit rows for cloud performance
+    data["text"] = data.astype(str).agg(" ".join, axis=1)
+    return data
+
+data = load_data()
+
+texts = data["text"].tolist()
+
+# Load embedding model
 @st.cache_resource
 def load_model():
     model = SentenceTransformer("all-MiniLM-L6-v2")
     return model
 
-@st.cache_data
-def load_data():
-    data = pd.read_excel("Customer Experience.xlsx")
-    data = data.head(2000)
-    data["text"] = data.astype(str).agg(" ".join, axis=1)
-    return data
-
 model = load_model()
-data = load_data()
 
-texts = data["text"].tolist()
-
+# Create FAISS index
 @st.cache_resource
 def create_index():
     embeddings = model.encode(texts)
@@ -33,16 +37,8 @@ def create_index():
 
 index = create_index()
 
+# User question input
 query = st.text_input("Ask anything about customer cases")
-
-if query:
-    query_embedding = model.encode([query])
-    D, I = index.search(np.array(query_embedding), k=5)
-    results = data.iloc[I[0]]
-
-    st.write("Relevant data:")
-    st.write(results)
-    query = st.text_input("Ask anything about customer cases")
 
 if query:
 
@@ -54,12 +50,18 @@ if query:
     st.subheader("AI Explanation")
 
     explanation = f"""
-Based on the dataset, the chatbot searched for records related to your question: **{query}**.
+Based on your question **"{query}"**, the chatbot searched the dataset for the most relevant customer cases.
 
-The table below shows the most relevant customer cases. 
-You can observe the channel, category, status, and type of customer requests from these results.
+The table below shows customer case records that are closely related to your query.
+From these results you can observe information such as:
 
-These records help understand patterns in customer experience issues.
+• Customer case number  
+• SLA status  
+• Channel used by the customer  
+• Category of issue  
+• Case status  
+
+These records help identify patterns in customer experience issues.
 """
 
     st.write(explanation)
@@ -67,4 +69,3 @@ These records help understand patterns in customer experience issues.
     st.subheader("Relevant Data")
 
     st.dataframe(results)
-
