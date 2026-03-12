@@ -12,7 +12,7 @@ st.title("Customer Experience AI Chatbot")
 # -------------------------------
 @st.cache_data
 def load_data():
-    data = pd.read_excel("Customer Experience.xlsx")
+    data = pd.read_excel("Book1.xlsx")
     data = data.head(2000)  # limit rows for faster processing
     data["text"] = data.astype(str).agg(" ".join, axis=1)
     return data
@@ -98,3 +98,4 @@ The table below shows the relevant customer case records that were used for this
     st.subheader("Relevant Data")
 
     st.dataframe(results)
+
